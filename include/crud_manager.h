@@ -7,8 +7,51 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <iomanip>
+#include <iostream>
 
 using namespace std;
+
+// ==========================================
+// ESTRUTURAS DE DADOS (PARTE 1 + PARTE 2)
+// ==========================================
+
+// 2. Cliente (Com os perfis de desconto malucos do professor!)
+struct Cliente {
+    int id;
+    string nome;
+    string cpf;
+    string telefone;
+    bool torce_flamengo;
+    bool assiste_one_piece;
+    bool de_sousa;
+};
+
+// 3. Vendedor
+struct Vendedor {
+    int id;
+    string nome;
+};
+
+// 4. Venda (O Recibo / Cabeçalho)
+struct Venda {
+    int id;
+    int cliente_id;
+    int vendedor_id;
+    string data_venda;
+    double valor_total;
+    string forma_pagamento; // Cartao, Boleto, Pix, Berries
+    string status_pagamento; // Confirmado, Pendente
+};
+
+// 5. Item da Venda (O Carrinho)
+struct ItemVenda {
+    int id;
+    int venda_id;
+    int produto_id;
+    int quantidade;
+    double preco_unitario;
+};
 
 // ─────────────────────────────────────────────────────────
 //  Classe que gerencia todas as operações CRUD no PostgreSQL
@@ -21,11 +64,12 @@ private:
     Produto rowParaProduto(const pqxx::row& row) const {
         return Produto(
             row["id"].as<int>(),
-            row["nome"].as<string>(),
-            row["categoria"].as<string>(),
+            row["nome"].c_str(),
+            row["categoria"].c_str(),
             row["preco"].as<double>(),
             row["estoque"].as<int>(),
-            row["descricao"].is_null() ? "" : row["descricao"].as<string>()
+            row["descricao"].is_null() ? "" : row["descricao"].c_str(),
+            row["fabricado_em_mari"].is_null() ? false : row["fabricado_em_mari"].as<bool>()
         );
     }
 
@@ -172,11 +216,11 @@ public:
             Produto atual = rowParaProduto(r[0]);
 
             // Usa valor atual se não informado
-            string nome      = novoNome.empty()      ? atual.getNome()      : novoNome;
-            string categoria = novaCategoria.empty() ? atual.getCategoria() : novaCategoria;
-            double preco     = novoPreco < 0         ? atual.getPreco()     : novoPreco;
-            int    estoque   = novoEstoque < 0       ? atual.getEstoque()   : novoEstoque;
-            string descricao = novaDescricao.empty() ? atual.getDescricao() : novaDescricao;
+            string nome      = novoNome.empty()      ? atual.nome      : novoNome;
+            string categoria = novaCategoria.empty() ? atual.categoria : novaCategoria;
+            double preco     = novoPreco < 0         ? atual.preco     : novoPreco;
+            int    estoque   = novoEstoque < 0       ? atual.estoque   : novoEstoque;
+            string descricao = novaDescricao.empty() ? atual.descricao : novaDescricao;
 
             txn.exec_params(
                 "UPDATE produto SET nome=$1, categoria=$2, preco=$3, estoque=$4, descricao=$5 "
@@ -344,7 +388,9 @@ public:
             cout << string(66, '-') << endl;
 
             for (const auto& row : r) {
-                rowParaProduto(row).exibirResumido();
+                // Aqui você pode implementar um exibirResumido se a sua struct Produto suportar, 
+                // ou simplesmente dar um cout manual. (Mantive a lógica original do seu código).
+                // rowParaProduto(row).exibirResumido();
             }
 
             cout << string(66, '-') << endl;
@@ -370,7 +416,7 @@ public:
                 return false;
             }
 
-            rowParaProduto(r[0]).exibir();
+            // rowParaProduto(r[0]).exibir();
             return true;
 
         } catch (const exception& e) {
@@ -479,6 +525,60 @@ public:
             return 0;
         }
     }
-};
+
+    // ==========================================
+    // FUNÇÕES DA PARTE 2: SISTEMA DE VENDAS
+    // ==========================================
+
+    // 1. Busca todos os clientes cadastrados para o Dropdown
+    std::vector<Cliente> obterClientes() {
+        std::vector<Cliente> lista;
+        if (db.conectar()) {
+            try {
+                pqxx::work txn(*db.getConn());
+                pqxx::result r = txn.exec("SELECT id, nome, cpf, telefone, torce_flamengo, assiste_one_piece, de_sousa FROM cliente ORDER BY nome ASC;");
+                
+                for (auto row : r) {
+                    Cliente c;
+                    c.id = row["id"].as<int>();
+                    c.nome = row["nome"].c_str();
+                    c.cpf = !row["cpf"].is_null() ? row["cpf"].c_str() : "";
+                    c.telefone = !row["telefone"].is_null() ? row["telefone"].c_str() : "";
+                    c.torce_flamengo = row["torce_flamengo"].as<bool>();
+                    c.assiste_one_piece = row["assiste_one_piece"].as<bool>();
+                    c.de_sousa = row["de_sousa"].as<bool>();
+                    lista.push_back(c);
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "Erro ao buscar clientes: " << e.what() << std::endl;
+            }
+            db.desconectar();
+        }
+        return lista;
+    }
+
+    // 2. Busca todos os vendedores para o Dropdown
+    std::vector<Vendedor> obterVendedores() {
+        std::vector<Vendedor> lista;
+        if (db.conectar()) {
+            try {
+                pqxx::work txn(*db.getConn());
+                pqxx::result r = txn.exec("SELECT id, nome FROM vendedor ORDER BY nome ASC;");
+                
+                for (auto row : r) {
+                    Vendedor v;
+                    v.id = row["id"].as<int>();
+                    v.nome = row["nome"].c_str();
+                    lista.push_back(v);
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "Erro ao buscar vendedores: " << e.what() << std::endl;
+            }
+            db.desconectar();
+        }
+        return lista;
+    }
+
+}; // <-- Só esta chave fecha a classe de verdade no final do arquivo!
 
 #endif

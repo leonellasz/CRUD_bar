@@ -25,7 +25,7 @@ private:
 
         return string("host=") + (host ? host : "localhost") +
                " port=5432"
-               " dbname=bar_do_bode"
+               " dbname=postgres"
                " user=" + (user ? user : "postgres") +
                " password=" + (senha ? senha : "Minhamae21321@");
     }
