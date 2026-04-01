@@ -1,5 +1,5 @@
 # Bar do Bode — Sistema de Gestão de Estoque (GUI)
-**Banco de Dados I — 2026.2 (Evoluído para Aplicação Nativa Windows)**
+**Banco de Dados I — 2026.1 (Evoluído para Aplicação Nativa Windows)**
 
 Sistema de gerenciamento de estoque com Interface Gráfica (Win32 API) desenvolvido em C++ puro. Conectado a um banco de dados PostgreSQL via `libpqxx`, oferecendo recursos avançados como Tabela Profissional (DataGrid), Modo Claro/Escuro, Exportação de Relatórios e Autenticação Administrativa.
 
